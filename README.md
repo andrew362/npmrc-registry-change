@@ -1,5 +1,8 @@
 # NPM Registry Manager
 
+![](public/snapshot.png)
+
+
 A desktop application built with Tauri and React to easily switch between npm registries. This tool helps you manage multiple npm registry configurations in your `.npmrc` file with color-coding and easy switching.
 
 ## Features
