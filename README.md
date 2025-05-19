@@ -82,6 +82,18 @@ npm run tauri build
 ```
 
 This will generate an installer in the `src-tauri/target/release/bundle/nsis/` directory.
+
+## Releasing
+
+The project uses GitHub Actions to automatically build and release the application when a new tag is pushed:
+
+```bash
+# Update version numbers in package.json and src-tauri/tauri.conf.json first
+git tag -a v1.0.0 -m "Release v1.0.0"
+git push origin v1.0.0
+```
+
+For more details, see [RELEASING.md](./RELEASING.md).
   main.tsx            # Application entry point
 
 /src-tauri           # Rust backend code

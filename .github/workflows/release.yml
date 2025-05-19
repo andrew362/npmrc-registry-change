@@ -1,0 +1,101 @@
+name: Create Release with EXE
+
+on:
+  push:
+    tags:
+      - 'v*' # Run workflow when a tag starting with 'v' (e.g., v1.0.0) is pushed
+
+jobs:
+  create-release:
+    runs-on: windows-latest # Use Windows system for building Tauri app for Windows
+    permissions:
+      contents: write # Needed for creating releases and uploading artifacts
+
+    env:
+      APP_NAME: npmrc-registry-change # The name of your app's executable (as in the project structure)
+      PRODUCT_NAME: "NPM Registry Manager" # The display name of the app (as in tauri.conf.json)
+      GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }} # Token provided by GitHub Actions
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22' # Możesz dostosować do wersji Node.js używanej w projekcie
+
+      - name: Cache npm dependencies
+        uses: actions/cache@v4
+        with:
+          path: ~/.npm
+          key: ${{ runner.os }}-node-${{ hashFiles('**/package-lock.json') }}
+          restore-keys: |
+            ${{ runner.os }}-node-
+
+      - name: Install Rust toolchain
+        uses: dtolnay/rust-toolchain@stable # Zalecana akcja do konfiguracji Rust
+        with:
+          toolchain: stable
+          components: rustfmt, clippy # Opcjonalne komponenty
+
+      - name: Install Tauri CLI
+        run: npm install -g @tauri-apps/cli # Instaluje globalnie Tauri CLI
+
+      # Recommended for Tauri CI on Windows to ensure WebView2 is available
+      - name: Install WebView2
+        shell: pwsh
+        run: |
+          Invoke-WebRequest -Uri https://go.microsoft.com/fwlink/p/?LinkId=2124703 -OutFile MicrosoftEdgeWebview2Setup.exe
+          Start-Process -FilePath .\MicrosoftEdgeWebview2Setup.exe -ArgumentList "/silent", "/install" -Wait
+          Remove-Item MicrosoftEdgeWebview2Setup.exe
+
+      - name: Install frontend dependencies
+        run: npm install
+
+      - name: Generate file checksums
+        shell: pwsh
+        run: |
+          New-Item -ItemType Directory -Path ./checksums -Force
+          Get-FileHash src-tauri/target/release/${{ env.APP_NAME }}.exe -Algorithm SHA256 | ForEach-Object { "$($_.Hash.ToLower())  ${{ env.APP_NAME }}.exe" } | Out-File -FilePath ./checksums/SHA256SUMS.txt -Encoding utf8NoBOM -Append
+          Get-ChildItem -Path src-tauri/target/release/bundle/nsis/ -Filter "*.exe" | ForEach-Object { 
+            $hash = Get-FileHash $_.FullName -Algorithm SHA256
+            "$($hash.Hash.ToLower())  $($_.Name)" | Out-File -FilePath ./checksums/SHA256SUMS.txt -Encoding utf8NoBOM -Append
+          }
+
+      - name: Build Tauri application
+        run: npm run tauri build # Zakłada, że masz skrypt "tauri build" w package.json
+
+      - name: List built artifacts (for debugging)
+        shell: pwsh
+        run: |
+          echo "--- NSIS Bundles ---"
+          Get-ChildItem -Path src-tauri/target/release/bundle/nsis/ -Recurse -ErrorAction SilentlyContinue
+          echo "--- Direct Executable ---"
+          Get-ChildItem -Path src-tauri/target/release/ -Filter "${{ env.APP_NAME }}.exe" -ErrorAction SilentlyContinue
+
+      - name: Create Release and Upload Assets
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ github.ref_name }}
+          name: ${{ env.PRODUCT_NAME }} ${{ github.ref_name }}
+          body: |
+            # NPM Registry Manager ${{ github.ref_name }}
+            
+            Automated release for ${{ github.ref_name }}
+            
+            ## What's Included
+            - Windows installer (.exe)
+            - Direct application executable
+            
+            ## Installation
+            Download and run the installer (recommended) or use the standalone executable.
+            
+            ## Changes
+            See commit history for details.
+          draft: false
+          prerelease: false
+          files: |
+            src-tauri/target/release/bundle/nsis/NPM Registry Manager_*_x64-setup.exe  # NSIS installer (.exe)
+            src-tauri/target/release/${{ env.APP_NAME }}.exe                           # Direct application executable
+            checksums/SHA256SUMS.txt                                                   # File checksums
