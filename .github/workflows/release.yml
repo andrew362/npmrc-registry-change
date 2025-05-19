@@ -53,6 +53,9 @@ jobs:
       - name: Install frontend dependencies
         run: npm install
 
+      - name: Build Tauri application
+        run: npm run tauri build
+
       - name: Generate file checksums
         shell: pwsh
         run: |
@@ -62,9 +65,6 @@ jobs:
             $hash = Get-FileHash $_.FullName -Algorithm SHA256
             "$($hash.Hash.ToLower())  $($_.Name)" | Out-File -FilePath ./checksums/SHA256SUMS.txt -Encoding utf8NoBOM -Append
           }
-
-      - name: Build Tauri application
-        run: npm run tauri build # Zakłada, że masz skrypt "tauri build" w package.json
 
       - name: List built artifacts (for debugging)
         shell: pwsh
