@@ -96,6 +96,6 @@ jobs:
           draft: false
           prerelease: false
           files: |
-            src-tauri/target/release/bundle/nsis/NPM Registry Manager_*_x64-setup.exe  # NSIS installer (.exe)
-            src-tauri/target/release/${{ env.APP_NAME }}.exe                           # Direct application executable
-            checksums/SHA256SUMS.txt                                                   # File checksums
+            src-tauri/target/release/bundle/nsis/NPM Registry Manager_*_x64-setup.exe
+            src-tauri/target/release/${{ env.APP_NAME }}.exe
+            checksums/SHA256SUMS.txt
