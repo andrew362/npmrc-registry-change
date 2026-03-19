@@ -155,10 +155,31 @@ fn get_current_registry() -> Result<String, String> {
 fn set_registry(registry: String) -> Result<(), String> {
     let home_dir = dirs::home_dir().ok_or("Failed to get home directory")?;
     let npmrc_path: PathBuf = [home_dir.to_str().unwrap(), ".npmrc"].iter().collect();
-    
-    // Write a simple npmrc content with the selected registry
-    fs::write(&npmrc_path, format!("registry={}", registry))
-        .map_err(|err| err.to_string())?;
+
+    // Sanitize the registry input to prevent configuration injection
+    let sanitized_registry = registry.replace('\n', "").replace('\r', "");
+
+    let mut lines: Vec<String> = if npmrc_path.exists() {
+        let content = fs::read_to_string(&npmrc_path).map_err(|err| err.to_string())?;
+        content.lines().map(|s| s.to_string()).collect()
+    } else {
+        Vec::new()
+    };
+
+    let mut found = false;
+    for line in lines.iter_mut() {
+        if line.starts_with("registry=") {
+            *line = format!("registry={}", sanitized_registry);
+            found = true;
+            break;
+        }
+    }
+
+    if !found {
+        lines.push(format!("registry={}", sanitized_registry));
+    }
+
+    fs::write(&npmrc_path, lines.join("\n") + "\n").map_err(|err| err.to_string())?;
     Ok(())
 }
 
