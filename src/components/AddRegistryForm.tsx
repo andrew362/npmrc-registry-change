@@ -11,13 +11,13 @@ const AddRegistryForm: React.FC<AddRegistryFormProps> = ({ onAddRegistry }) => {
   const [isExpanded, setIsExpanded] = useState(false);
 
   const predefinedColors = [
-    '#1890ff', // blue (default for global)
-    '#52c41a', // green
-    '#fa8c16', // orange
-    '#f5222d', // red
-    '#722ed1', // purple
-    '#eb2f96', // pink
-    '#4b5563', // gray
+    { value: '#1890ff', name: 'Blue' },
+    { value: '#52c41a', name: 'Green' },
+    { value: '#fa8c16', name: 'Orange' },
+    { value: '#f5222d', name: 'Red' },
+    { value: '#722ed1', name: 'Purple' },
+    { value: '#eb2f96', name: 'Pink' },
+    { value: '#4b5563', name: 'Gray' },
   ];
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -81,6 +81,7 @@ const AddRegistryForm: React.FC<AddRegistryFormProps> = ({ onAddRegistry }) => {
         <h3 style={{ margin: 0, fontSize: '16px', color: '#374151' }}>Add Custom Registry</h3>
         <button
           onClick={() => setIsExpanded(false)}
+          aria-label="Close"
           style={{
             background: 'none',
             border: 'none',
@@ -104,7 +105,7 @@ const AddRegistryForm: React.FC<AddRegistryFormProps> = ({ onAddRegistry }) => {
               color: '#4b5563',
             }}
           >
-            Registry Name:
+            Registry Name: <span style={{ color: '#ef4444' }} aria-hidden="true">*</span>
           </label>
           <input
             id="registry-name"
@@ -134,7 +135,7 @@ const AddRegistryForm: React.FC<AddRegistryFormProps> = ({ onAddRegistry }) => {
               color: '#4b5563',
             }}
           >
-            Registry URL:
+            Registry URL: <span style={{ color: '#ef4444' }} aria-hidden="true">*</span>
           </label>
           <input
             id="registry-url"
@@ -169,6 +170,7 @@ const AddRegistryForm: React.FC<AddRegistryFormProps> = ({ onAddRegistry }) => {
           <div style={{ display: 'flex', alignItems: 'center' }}>
             <input
               type="color"
+              aria-label="Custom color picker"
               value={color}
               onChange={(e) => setColor(e.target.value)}
               style={{
@@ -182,9 +184,12 @@ const AddRegistryForm: React.FC<AddRegistryFormProps> = ({ onAddRegistry }) => {
               }}
             />
             <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
-              {predefinedColors.map((presetColor) => (
-                <div
+              {predefinedColors.map(({ value: presetColor, name: colorName }) => (
+                <button
                   key={presetColor}
+                  type="button"
+                  aria-label={colorName}
+                  aria-pressed={color === presetColor}
                   onClick={() => setColor(presetColor)}
                   style={{
                     width: '24px',
@@ -192,6 +197,7 @@ const AddRegistryForm: React.FC<AddRegistryFormProps> = ({ onAddRegistry }) => {
                     backgroundColor: presetColor,
                     borderRadius: '4px',
                     cursor: 'pointer',
+                    padding: 0,
                     border: color === presetColor ? '2px solid #000' : '1px solid #e5e7eb',
                   }}
                 />
