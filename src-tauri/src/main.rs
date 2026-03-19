@@ -130,7 +130,7 @@ fn remove_registry(name: String) -> Result<(), String> {
 #[tauri::command]
 fn get_current_registry() -> Result<String, String> {
     let home_dir = dirs::home_dir().ok_or("Failed to get home directory")?;
-    let npmrc_path: PathBuf = [home_dir.to_str().unwrap(), ".npmrc"].iter().collect();
+    let npmrc_path: PathBuf = home_dir.join(".npmrc");
     
     // Check if .npmrc exists
     if !npmrc_path.exists() {
@@ -154,7 +154,7 @@ fn get_current_registry() -> Result<String, String> {
 #[tauri::command]
 fn set_registry(registry: String) -> Result<(), String> {
     let home_dir = dirs::home_dir().ok_or("Failed to get home directory")?;
-    let npmrc_path: PathBuf = [home_dir.to_str().unwrap(), ".npmrc"].iter().collect();
+    let npmrc_path: PathBuf = home_dir.join(".npmrc");
     
     // Write a simple npmrc content with the selected registry
     fs::write(&npmrc_path, format!("registry={}", registry))
