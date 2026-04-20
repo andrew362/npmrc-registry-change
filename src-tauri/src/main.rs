@@ -1,11 +1,11 @@
 // Prevents additional console window on Windows in release, DO NOT REMOVE!!
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
 
-use std::fs;
-use std::path::PathBuf;
-use std::io::{self, BufRead, Write};
-use std::collections::HashMap;
 use serde::{Deserialize, Serialize};
+use std::collections::HashMap;
+use std::fs;
+use std::io::{self, BufRead, Write};
+use std::path::PathBuf;
 
 #[derive(Serialize, Deserialize, Clone, Debug)]
 struct RegistryEntry {
@@ -22,11 +22,14 @@ impl Default for RegistryConfig {
     fn default() -> Self {
         let mut registries = HashMap::new();
         // Add global registry with default color
-        registries.insert("Global".to_string(), RegistryEntry {
-            url: "https://registry.npmjs.org/".to_string(),
-            color: Some("#1890ff".to_string()),
-        });
-        
+        registries.insert(
+            "Global".to_string(),
+            RegistryEntry {
+                url: "https://registry.npmjs.org/".to_string(),
+                color: Some("#1890ff".to_string()),
+            },
+        );
+
         RegistryConfig { registries }
     }
 }
@@ -34,12 +37,13 @@ impl Default for RegistryConfig {
 fn get_config_path() -> Result<PathBuf, String> {
     let home_dir = dirs::home_dir().ok_or("Failed to get home directory")?;
     let config_dir = home_dir.join(".npmrc-manager");
-    
+
     // Create config directory if it doesn't exist
     if !config_dir.exists() {
-        fs::create_dir_all(&config_dir).map_err(|e| format!("Failed to create config directory: {}", e))?;
+        fs::create_dir_all(&config_dir)
+            .map_err(|e| format!("Failed to create config directory: {}", e))?;
     }
-    
+
     Ok(config_dir.join("registries.json"))
 }
 
@@ -59,11 +63,9 @@ fn load_registry_config() -> RegistryConfig {
     }
 
     match fs::read_to_string(&config_path) {
-        Ok(content) => {
-            match serde_json::from_str::<RegistryConfig>(&content) {
-                Ok(config) => config,
-                Err(_) => RegistryConfig::default(),
-            }
+        Ok(content) => match serde_json::from_str::<RegistryConfig>(&content) {
+            Ok(config) => config,
+            Err(_) => RegistryConfig::default(),
         },
         Err(_) => RegistryConfig::default(),
     }
@@ -71,22 +73,22 @@ fn load_registry_config() -> RegistryConfig {
 
 fn save_registry_config(config: &RegistryConfig) -> Result<(), String> {
     let config_path = get_config_path()?;
-    
+
     let json = serde_json::to_string_pretty(config)
         .map_err(|e| format!("Failed to serialize config: {}", e))?;
-        
-    fs::write(&config_path, json)
-        .map_err(|e| format!("Failed to write config file: {}", e))?;
-        
+
+    fs::write(&config_path, json).map_err(|e| format!("Failed to write config file: {}", e))?;
+
     Ok(())
 }
 
 #[tauri::command]
 fn list_registries() -> Vec<(String, String, Option<String>)> {
     let config = load_registry_config();
-    
+
     // Convert HashMap to Vec of tuples for frontend use
-    config.registries
+    config
+        .registries
         .iter()
         .map(|(name, entry)| (name.clone(), entry.url.clone(), entry.color.clone()))
         .collect()
@@ -104,10 +106,10 @@ fn is_global_registry() -> bool {
 #[tauri::command]
 fn add_registry(name: String, url: String, color: Option<String>) -> Result<(), String> {
     let mut config = load_registry_config();
-    
+
     // Add or update the registry
     config.registries.insert(name, RegistryEntry { url, color });
-    
+
     // Save the updated config
     save_registry_config(&config)
 }
@@ -115,14 +117,14 @@ fn add_registry(name: String, url: String, color: Option<String>) -> Result<(), 
 #[tauri::command]
 fn remove_registry(name: String) -> Result<(), String> {
     let mut config = load_registry_config();
-    
+
     // Remove the registry if it exists
     if !config.registries.contains_key(&name) {
         return Err(format!("Registry '{}' not found", name));
     }
-    
+
     config.registries.remove(&name);
-    
+
     // Save the updated config
     save_registry_config(&config)
 }
@@ -130,35 +132,34 @@ fn remove_registry(name: String) -> Result<(), String> {
 #[tauri::command]
 fn get_current_registry() -> Result<String, String> {
     let home_dir = dirs::home_dir().ok_or("Failed to get home directory")?;
-    let npmrc_path: PathBuf = [home_dir.to_str().unwrap(), ".npmrc"].iter().collect();
-    
+    let npmrc_path = home_dir.join(".npmrc");
+
     // Check if .npmrc exists
     if !npmrc_path.exists() {
         return Ok("No .npmrc file found".to_string());
     }
-    
+
     // Read the file and find registry line
     let file = fs::File::open(&npmrc_path).map_err(|e| e.to_string())?;
     let reader = io::BufReader::new(file);
-    
+
     for line in reader.lines() {
         let line = line.map_err(|e| e.to_string())?;
         if line.starts_with("registry=") {
             return Ok(line[9..].to_string());
         }
     }
-    
+
     Ok("No registry found in .npmrc".to_string())
 }
 
 #[tauri::command]
 fn set_registry(registry: String) -> Result<(), String> {
     let home_dir = dirs::home_dir().ok_or("Failed to get home directory")?;
-    let npmrc_path: PathBuf = [home_dir.to_str().unwrap(), ".npmrc"].iter().collect();
-    
+    let npmrc_path = home_dir.join(".npmrc");
+
     // Write a simple npmrc content with the selected registry
-    fs::write(&npmrc_path, format!("registry={}", registry))
-        .map_err(|err| err.to_string())?;
+    fs::write(&npmrc_path, format!("registry={}", registry)).map_err(|err| err.to_string())?;
     Ok(())
 }
 
